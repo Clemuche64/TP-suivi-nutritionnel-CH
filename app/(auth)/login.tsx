@@ -16,20 +16,20 @@ function getClerkErrorMessage(error: unknown): string {
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, setActive, isLoaded } = useSignIn();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    if (!isLoaded) {
+    if (!isLoaded || !setActive) {
       return;
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedIdentifier = identifier.trim();
 
-    if (!normalizedEmail || !password.trim()) {
-      setError("Email et mot de passe requis.");
+    if (!trimmedIdentifier || !password.trim()) {
+      setError("Identifiant et mot de passe requis.");
       return;
     }
 
@@ -37,18 +37,33 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      const result = await signIn.create({
-        identifier: normalizedEmail,
-        password,
+      const normalizedIdentifier = trimmedIdentifier.includes("@")
+        ? trimmedIdentifier.toLowerCase()
+        : trimmedIdentifier;
+
+      let result = await signIn.create({
+        identifier: normalizedIdentifier,
       });
 
-      if (result.status !== "complete" || !result.createdSessionId) {
-        setError("Connexion incomplete.");
+      if (result.status === "needs_first_factor") {
+        result = await signIn.attemptFirstFactor({
+          strategy: "password",
+          password,
+        });
+      }
+
+      if (result.status === "complete" && result.createdSessionId) {
+        await setActive({ session: result.createdSessionId });
+        router.replace("/(main)/(home)");
         return;
       }
 
-      await setActive({ session: result.createdSessionId });
-      router.replace("/(main)/(home)");
+      if (result.status === "needs_first_factor") {
+        setError("Identifiant ou mot de passe invalide.");
+        return;
+      }
+
+      setError("Connexion impossible avec cette configuration de compte.");
     } catch (err) {
       setError(getClerkErrorMessage(err));
     } finally {
@@ -65,13 +80,12 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>Accede a ton suivi nutritionnel.</Text>
 
             <AppInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
+              label="Email ou username"
+              value={identifier}
+              onChangeText={setIdentifier}
               autoCapitalize="none"
-              keyboardType="email-address"
               autoCorrect={false}
-              placeholder="email@exemple.com"
+              placeholder="email@exemple.com ou username"
             />
 
             <AppInput
