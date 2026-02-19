@@ -1,8 +1,9 @@
 import { useAuth } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "../../../src/components/AppButton";
 import { AppCard } from "../../../src/components/AppCard";
@@ -70,6 +71,15 @@ export default function DetailScreen() {
 
   const totals = useMemo(() => getTotals(meal?.foods ?? []), [meal]);
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/(main)/(home)");
+  };
+
   const handleDelete = () => {
     if (!meal || isDeleting) {
       return;
@@ -119,6 +129,13 @@ export default function DetailScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
+            <View style={styles.backRow}>
+              <Pressable onPress={handleBack} style={styles.backButton} accessibilityRole="button">
+                <Ionicons name="chevron-back" size={18} color={theme.colors.text} />
+                <Text style={styles.backText}>Retour</Text>
+              </Pressable>
+            </View>
+
             <Text style={styles.title}>{meal.name}</Text>
             <Text style={styles.meta}>{new Date(meal.date).toLocaleString("fr-FR")}</Text>
 
@@ -171,6 +188,25 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: theme.spacing.md,
+  },
+  backRow: {
+    marginBottom: theme.spacing.xs,
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  backText: {
+    color: theme.colors.text,
+    fontWeight: "600",
   },
   title: {
     color: theme.colors.text,
