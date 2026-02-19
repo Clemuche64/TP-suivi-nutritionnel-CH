@@ -1,6 +1,8 @@
+import { ClerkLoaded, ClerkLoading, ClerkProvider } from "@clerk/clerk-expo";
 import * as SecureStore from "expo-secure-store";
-import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
 import { Stack } from "expo-router";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { theme } from "../src/theme/theme";
 
 const tokenCache = {
   async getToken(key: string) {
@@ -13,7 +15,9 @@ const tokenCache = {
   async saveToken(key: string, value: string) {
     try {
       await SecureStore.setItemAsync(key, value);
-    } catch {}
+    } catch {
+      // Ignore SecureStore write errors to avoid hard crash.
+    }
   },
 };
 
@@ -21,14 +25,37 @@ export default function RootLayout() {
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   if (!publishableKey) {
-    throw new Error("Clerk publishable key manquante");
+    throw new Error("EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY est manquante.");
   }
 
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+      <ClerkLoading>
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color={theme.colors.blue} />
+        </View>
+      </ClerkLoading>
+
       <ClerkLoaded>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.colors.bg },
+          }}
+        >
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(main)" />
+        </Stack>
       </ClerkLoaded>
     </ClerkProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loader: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.bg,
+  },
+});

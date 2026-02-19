@@ -1,35 +1,141 @@
-import { Link } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { useSignIn } from "@clerk/clerk-expo";
+import { Link, useRouter } from "expo-router";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { AppButton } from "../../src/components/AppButton";
+import { AppCard } from "../../src/components/AppCard";
+import { AppInput } from "../../src/components/AppInput";
+import { theme } from "../../src/theme/theme";
+
+function getClerkErrorMessage(error: unknown): string {
+  const firstError = (error as { errors?: { longMessage?: string; message?: string }[] })?.errors?.[0];
+  return firstError?.longMessage || firstError?.message || "Connexion impossible.";
+}
 
 export default function LoginScreen() {
+  const router = useRouter();
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = async () => {
+    if (!isLoaded) {
+      return;
+    }
+
+    if (!email.trim() || !password.trim()) {
+      setError("Email et mot de passe requis.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await signIn.create({
+        identifier: email.trim(),
+        password,
+      });
+
+      if (result.status !== "complete" || !result.createdSessionId) {
+        setError("Connexion incomplete.");
+        return;
+      }
+
+      await setActive({ session: result.createdSessionId });
+      router.replace("/(main)/(home)");
+    } catch (err) {
+      setError(getClerkErrorMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <Text style={styles.text}>Ecran de connexion Clerk a implementer.</Text>
-      <Link href="/signup" style={styles.link}>
-        Creer un compte
-      </Link>
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <AppCard style={styles.card}>
+            <Text style={styles.title}>Connexion</Text>
+            <Text style={styles.subtitle}>Accede a ton suivi nutritionnel.</Text>
+
+            <AppInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoCorrect={false}
+              placeholder="email@exemple.com"
+            />
+
+            <AppInput
+              label="Mot de passe"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="********"
+            />
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <AppButton title="Se connecter" onPress={handleLogin} loading={isLoading} fullWidth />
+
+            <View style={styles.switchRow}>
+              <Text style={styles.switchText}>Pas encore de compte ?</Text>
+              <Link href="/(auth)/signup" style={styles.link}>
+                S'inscrire
+              </Link>
+            </View>
+          </AppCard>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    alignItems: "center",
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.bg,
+  },
+  container: {
+    flexGrow: 1,
     justifyContent: "center",
-    gap: 12,
-    padding: 24,
+    padding: theme.spacing.lg,
+  },
+  card: {
+    gap: theme.spacing.md,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "700",
+    color: theme.colors.text,
+    fontSize: 28,
+    fontWeight: "800",
   },
-  text: {
-    color: "#4b5563",
+  subtitle: {
+    color: theme.colors.textMuted,
+  },
+  error: {
+    color: theme.colors.orange,
+    fontWeight: "600",
+  },
+  switchRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: theme.spacing.xs,
+  },
+  switchText: {
+    color: theme.colors.textMuted,
+    fontSize: 14,
   },
   link: {
-    color: "#2563eb",
-    fontWeight: "600",
+    color: theme.colors.blue,
+    fontSize: 14,
+    fontWeight: "700",
   },
 });
