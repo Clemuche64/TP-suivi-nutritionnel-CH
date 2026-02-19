@@ -1,8 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Food, Meal } from "../types/models";
 
-const MEALS_KEY = "@meals";
-const CALORIE_GOAL_KEY = "@calorie_goal";
+const LEGACY_MEALS_KEY = "@meals";
+const LEGACY_CALORIE_GOAL_KEY = "@calorie_goal";
+
+function mealsKey(userId: string): string {
+  return `@meals:${userId}`;
+}
+
+function calorieGoalKey(userId: string): string {
+  return `@calorie_goal:${userId}`;
+}
 
 function toNumber(value: unknown): number {
   const parsed = Number(value);
@@ -66,9 +74,48 @@ function sanitizeMeals(value: unknown): Meal[] {
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export async function loadMeals(): Promise<Meal[]> {
+function assertUserId(userId: string): void {
+  if (!userId || !userId.trim()) {
+    throw new Error("Identifiant utilisateur manquant.");
+  }
+}
+
+async function migrateLegacyMealsIfNeeded(userId: string): Promise<void> {
+  const scopedKey = mealsKey(userId);
+  const [scopedValue, legacyValue] = await Promise.all([
+    AsyncStorage.getItem(scopedKey),
+    AsyncStorage.getItem(LEGACY_MEALS_KEY),
+  ]);
+
+  if (scopedValue !== null || legacyValue === null) {
+    return;
+  }
+
+  await AsyncStorage.setItem(scopedKey, legacyValue);
+  await AsyncStorage.removeItem(LEGACY_MEALS_KEY);
+}
+
+async function migrateLegacyCalorieGoalIfNeeded(userId: string): Promise<void> {
+  const scopedKey = calorieGoalKey(userId);
+  const [scopedValue, legacyValue] = await Promise.all([
+    AsyncStorage.getItem(scopedKey),
+    AsyncStorage.getItem(LEGACY_CALORIE_GOAL_KEY),
+  ]);
+
+  if (scopedValue !== null || legacyValue === null) {
+    return;
+  }
+
+  await AsyncStorage.setItem(scopedKey, legacyValue);
+  await AsyncStorage.removeItem(LEGACY_CALORIE_GOAL_KEY);
+}
+
+export async function loadMeals(userId: string): Promise<Meal[]> {
+  assertUserId(userId);
+
   try {
-    const raw = await AsyncStorage.getItem(MEALS_KEY);
+    await migrateLegacyMealsIfNeeded(userId);
+    const raw = await AsyncStorage.getItem(mealsKey(userId));
     if (!raw) {
       return [];
     }
@@ -79,38 +126,43 @@ export async function loadMeals(): Promise<Meal[]> {
   }
 }
 
-export async function saveMeals(meals: Meal[]): Promise<void> {
+export async function saveMeals(userId: string, meals: Meal[]): Promise<void> {
+  assertUserId(userId);
+
   try {
-    await AsyncStorage.setItem(MEALS_KEY, JSON.stringify(sanitizeMeals(meals)));
+    await AsyncStorage.setItem(mealsKey(userId), JSON.stringify(sanitizeMeals(meals)));
   } catch {
     throw new Error("Impossible d'enregistrer les repas.");
   }
 }
 
-export async function addMeal(meal: Meal): Promise<Meal[]> {
-  const currentMeals = await loadMeals();
+export async function addMeal(userId: string, meal: Meal): Promise<Meal[]> {
+  const currentMeals = await loadMeals(userId);
   const nextMeals = [meal, ...currentMeals];
-  await saveMeals(nextMeals);
+  await saveMeals(userId, nextMeals);
   return nextMeals;
 }
 
-export async function deleteMeal(mealId: string): Promise<Meal[]> {
-  const currentMeals = await loadMeals();
+export async function deleteMeal(userId: string, mealId: string): Promise<Meal[]> {
+  const currentMeals = await loadMeals(userId);
   const nextMeals = currentMeals.filter((meal) => meal.id !== mealId);
-  await saveMeals(nextMeals);
+  await saveMeals(userId, nextMeals);
   return nextMeals;
 }
 
-export async function updateMeal(updatedMeal: Meal): Promise<Meal[]> {
-  const currentMeals = await loadMeals();
+export async function updateMeal(userId: string, updatedMeal: Meal): Promise<Meal[]> {
+  const currentMeals = await loadMeals(userId);
   const nextMeals = currentMeals.map((meal) => (meal.id === updatedMeal.id ? updatedMeal : meal));
-  await saveMeals(nextMeals);
+  await saveMeals(userId, nextMeals);
   return nextMeals;
 }
 
-export async function loadCalorieGoal(defaultValue = 2000): Promise<number> {
+export async function loadCalorieGoal(userId: string, defaultValue = 2000): Promise<number> {
+  assertUserId(userId);
+
   try {
-    const raw = await AsyncStorage.getItem(CALORIE_GOAL_KEY);
+    await migrateLegacyCalorieGoalIfNeeded(userId);
+    const raw = await AsyncStorage.getItem(calorieGoalKey(userId));
     if (!raw) {
       return defaultValue;
     }
@@ -122,11 +174,13 @@ export async function loadCalorieGoal(defaultValue = 2000): Promise<number> {
   }
 }
 
-export async function saveCalorieGoal(goal: number): Promise<number> {
+export async function saveCalorieGoal(userId: string, goal: number): Promise<number> {
+  assertUserId(userId);
+
   const normalizedGoal = Number.isFinite(goal) && goal > 0 ? Math.round(goal) : 2000;
 
   try {
-    await AsyncStorage.setItem(CALORIE_GOAL_KEY, String(normalizedGoal));
+    await AsyncStorage.setItem(calorieGoalKey(userId), String(normalizedGoal));
     return normalizedGoal;
   } catch {
     throw new Error("Impossible d'enregistrer l'objectif calorique.");

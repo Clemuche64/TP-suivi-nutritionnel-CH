@@ -1,3 +1,4 @@
+import { useAuth } from "@clerk/clerk-expo";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -30,6 +31,7 @@ function getTotals(foods: Food[]): Totals {
 
 export default function DetailScreen() {
   const router = useRouter();
+  const { userId } = useAuth();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const mealId = Array.isArray(params.id) ? params.id[0] : params.id;
   const [meal, setMeal] = useState<Meal | null>(null);
@@ -37,6 +39,12 @@ export default function DetailScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchMeal = useCallback(async () => {
+    if (!userId) {
+      setMeal(null);
+      setError("Session utilisateur indisponible.");
+      return;
+    }
+
     if (!mealId) {
       setMeal(null);
       setError("Identifiant repas manquant.");
@@ -44,7 +52,7 @@ export default function DetailScreen() {
     }
 
     try {
-      const meals = await loadMeals();
+      const meals = await loadMeals(userId);
       const targetMeal = meals.find((entry) => entry.id === mealId) ?? null;
       setMeal(targetMeal);
       setError(targetMeal ? null : "Repas introuvable.");
@@ -52,7 +60,7 @@ export default function DetailScreen() {
       setMeal(null);
       setError("Impossible de charger ce repas.");
     }
-  }, [mealId]);
+  }, [mealId, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -75,7 +83,12 @@ export default function DetailScreen() {
         onPress: async () => {
           setIsDeleting(true);
           try {
-            await deleteMeal(meal.id);
+            if (!userId) {
+              setError("Session utilisateur indisponible.");
+              return;
+            }
+
+            await deleteMeal(userId, meal.id);
             router.replace("/(main)/(home)");
           } catch {
             setError("Suppression impossible.");

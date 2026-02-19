@@ -1,3 +1,4 @@
+import { useAuth } from "@clerk/clerk-expo";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -21,6 +22,7 @@ function formatDate(date: string): string {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { userId } = useAuth();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [goal, setGoal] = useState(2000);
   const [goalInput, setGoalInput] = useState("2000");
@@ -29,8 +31,16 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!userId) {
+      setMeals([]);
+      setGoal(2000);
+      setGoalInput("");
+      setError("Session utilisateur indisponible.");
+      return;
+    }
+
     try {
-      const [loadedMeals, loadedGoal] = await Promise.all([loadMeals(), loadCalorieGoal(2000)]);
+      const [loadedMeals, loadedGoal] = await Promise.all([loadMeals(userId), loadCalorieGoal(userId, 2000)]);
       setMeals(loadedMeals);
       setGoal(loadedGoal);
       setGoalInput(String(loadedGoal));
@@ -38,7 +48,7 @@ export default function HomeScreen() {
     } catch {
       setError("Impossible de charger les donnees locales.");
     }
-  }, []);
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -62,6 +72,11 @@ export default function HomeScreen() {
   const progressColor = ratio <= 1 ? theme.colors.green : theme.colors.orange;
 
   const saveGoal = async () => {
+    if (!userId) {
+      setError("Session utilisateur indisponible.");
+      return;
+    }
+
     const parsed = Number(goalInput.trim().replace(",", "."));
     if (!Number.isFinite(parsed) || parsed <= 0) {
       setError("Objectif calorique invalide.");
@@ -72,7 +87,7 @@ export default function HomeScreen() {
     setError(null);
 
     try {
-      const saved = await saveCalorieGoal(parsed);
+      const saved = await saveCalorieGoal(userId, parsed);
       setGoal(saved);
       setGoalInput("");
       setIsEditingGoal(false);

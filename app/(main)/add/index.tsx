@@ -1,3 +1,4 @@
+import { useAuth } from "@clerk/clerk-expo";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -39,6 +40,7 @@ function getFoodKey(food: Food): string {
 
 export default function AddMealScreen() {
   const router = useRouter();
+  const { userId } = useAuth();
   const params = useLocalSearchParams<{ scanned?: string | string[]; scannedAt?: string | string[] }>();
   const [selectedType, setSelectedType] = useState<MealType>("Petit-dejeuner");
   const [searchTerm, setSearchTerm] = useState("");
@@ -158,6 +160,11 @@ export default function AddMealScreen() {
   };
 
   const saveMeal = async () => {
+    if (!userId) {
+      setError("Session utilisateur indisponible.");
+      return;
+    }
+
     if (!selectedType) {
       setError("Type de repas requis.");
       return;
@@ -180,7 +187,7 @@ export default function AddMealScreen() {
     };
 
     try {
-      await addMeal(meal);
+      await addMeal(userId, meal);
       resetComposer();
       router.replace("/(main)/(home)");
     } catch {
