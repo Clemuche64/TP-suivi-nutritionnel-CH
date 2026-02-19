@@ -1,7 +1,8 @@
 import { BarcodeScanningResult, CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "../../../src/components/AppButton";
 import { AppCard } from "../../../src/components/AppCard";
 import { getFoodByBarcode } from "../../../src/services/openFoodFacts";

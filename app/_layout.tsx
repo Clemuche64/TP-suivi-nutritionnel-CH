@@ -2,6 +2,7 @@ import { ClerkLoaded, ClerkLoading, ClerkProvider } from "@clerk/clerk-expo";
 import * as SecureStore from "expo-secure-store";
 import { Stack } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { theme } from "../src/theme/theme";
 
 const tokenCache = {
@@ -30,23 +31,25 @@ export default function RootLayout() {
 
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ClerkLoading>
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color={theme.colors.blue} />
-        </View>
-      </ClerkLoading>
+      <SafeAreaProvider>
+        <ClerkLoading>
+          <View style={styles.loader}>
+            <ActivityIndicator size="large" color={theme.colors.blue} />
+          </View>
+        </ClerkLoading>
 
-      <ClerkLoaded>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.colors.bg },
-          }}
-        >
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(main)" />
-        </Stack>
-      </ClerkLoaded>
+        <ClerkLoaded>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.colors.bg },
+            }}
+          >
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(main)" />
+          </Stack>
+        </ClerkLoaded>
+      </SafeAreaProvider>
     </ClerkProvider>
   );
 }

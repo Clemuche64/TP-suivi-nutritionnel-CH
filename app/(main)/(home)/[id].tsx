@@ -1,7 +1,8 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Alert, FlatList, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AppButton } from "../../../src/components/AppButton";
 import { AppCard } from "../../../src/components/AppCard";
 import { deleteMeal, loadMeals } from "../../../src/storage/mealsStorage";
