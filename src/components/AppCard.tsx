@@ -17,6 +17,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: theme.radius.card,
     padding: theme.spacing.lg,
+    overflow: "hidden",
     ...(theme.shadow.card ?? {}),
   },
 });

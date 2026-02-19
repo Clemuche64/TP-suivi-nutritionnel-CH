@@ -25,7 +25,9 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!email.trim() || !password.trim()) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail || !password.trim()) {
       setError("Email et mot de passe requis.");
       return;
     }
@@ -35,7 +37,7 @@ export default function LoginScreen() {
 
     try {
       const result = await signIn.create({
-        identifier: email.trim(),
+        identifier: normalizedEmail,
         password,
       });
 

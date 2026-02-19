@@ -22,10 +22,10 @@ function getVariantStyle(variant: ButtonVariant): VariantStyle {
   if (variant === "secondary") {
     return {
       container: {
-        backgroundColor: theme.colors.greenSoft,
-        borderColor: theme.colors.green,
+        backgroundColor: theme.colors.surface,
+        borderColor: theme.colors.border,
       },
-      textColor: theme.colors.navy,
+      textColor: theme.colors.text,
     };
   }
 
@@ -35,7 +35,7 @@ function getVariantStyle(variant: ButtonVariant): VariantStyle {
         backgroundColor: theme.colors.orange,
         borderColor: theme.colors.orange,
       },
-      textColor: theme.colors.navy,
+      textColor: theme.colors.text,
     };
   }
 
@@ -44,7 +44,7 @@ function getVariantStyle(variant: ButtonVariant): VariantStyle {
       backgroundColor: theme.colors.blue,
       borderColor: theme.colors.blue,
     },
-    textColor: theme.colors.surface,
+    textColor: theme.colors.text,
   };
 }
 
@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.86,
+    transform: [{ scale: 0.985 }],
   },
   disabled: {
     opacity: 0.6,

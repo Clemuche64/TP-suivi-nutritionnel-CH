@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
   },
   title: {
-    color: theme.colors.navy,
+    color: theme.colors.text,
     fontSize: 30,
     fontWeight: "800",
   },

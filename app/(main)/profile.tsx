@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   title: {
-    color: theme.colors.navy,
+    color: theme.colors.text,
     fontSize: 28,
     fontWeight: "800",
   },

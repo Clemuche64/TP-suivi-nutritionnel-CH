@@ -1,4 +1,4 @@
-import { useSignUp } from "@clerk/clerk-expo";
+import { useSignIn, useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -15,6 +15,10 @@ function getClerkErrorMessage(error: unknown): string {
 export default function SignupScreen() {
   const router = useRouter();
   const { isLoaded, signUp, setActive } = useSignUp();
+  const { signIn, isLoaded: isSignInLoaded } = useSignIn();
+  const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -22,13 +26,37 @@ export default function SignupScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const completeWithPasswordSignIn = async (normalizedEmail: string, rawPassword: string) => {
+    if (!isSignInLoaded || !setActive) {
+      return false;
+    }
+
+    const signInResult = await signIn.create({
+      identifier: normalizedEmail,
+      password: rawPassword,
+    });
+
+    if (signInResult.status !== "complete" || !signInResult.createdSessionId) {
+      return false;
+    }
+
+    await setActive({ session: signInResult.createdSessionId });
+    router.replace("/(main)/(home)");
+    return true;
+  };
+
   const handleSignup = async () => {
-    if (!isLoaded) {
+    if (!isLoaded || !setActive) {
       return;
     }
 
-    if (!email.trim() || !password.trim()) {
-      setError("Email et mot de passe requis.");
+    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedFirstName = firstName.trim();
+    const normalizedLastName = lastName.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedUsername || !normalizedFirstName || !normalizedLastName || !normalizedEmail || !password.trim()) {
+      setError("Username, prenom, nom, email et mot de passe sont requis.");
       return;
     }
 
@@ -37,7 +65,10 @@ export default function SignupScreen() {
 
     try {
       const result = await signUp.create({
-        emailAddress: email.trim(),
+        username: normalizedUsername,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        emailAddress: normalizedEmail,
         password,
       });
 
@@ -45,6 +76,10 @@ export default function SignupScreen() {
         await setActive({ session: result.createdSessionId });
         router.replace("/(main)/(home)");
         return;
+      }
+
+      if (result.status === "missing_requirements" && result.missingFields.length > 0) {
+        setError(`Inscription incomplete. Champs requis: ${result.missingFields.join(", ")}`);
       }
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -57,11 +92,14 @@ export default function SignupScreen() {
   };
 
   const handleVerifyCode = async () => {
-    if (!isLoaded) {
+    if (!isLoaded || !setActive) {
       return;
     }
 
-    if (!code.trim()) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedCode = code.trim();
+
+    if (!trimmedCode) {
       setError("Code de verification requis.");
       return;
     }
@@ -71,18 +109,47 @@ export default function SignupScreen() {
 
     try {
       const result = await signUp.attemptEmailAddressVerification({
-        code: code.trim(),
+        code: trimmedCode,
       });
 
-      if (result.status !== "complete" || !result.createdSessionId) {
+      if (result.status !== "complete") {
+        if (result.missingFields.length > 0) {
+          setError(`Verification incomplete. Champs requis: ${result.missingFields.join(", ")}`);
+          return;
+        }
+
         setError("Verification incomplete.");
         return;
       }
 
-      await setActive({ session: result.createdSessionId });
-      router.replace("/(main)/(home)");
+      const createdSessionId = result.createdSessionId ?? signUp.createdSessionId;
+
+      if (createdSessionId) {
+        await setActive({ session: createdSessionId });
+        router.replace("/(main)/(home)");
+        return;
+      }
+
+      const signedIn = await completeWithPasswordSignIn(normalizedEmail, password);
+      if (signedIn) {
+        return;
+      }
+
+      setError("Compte verifie, mais session introuvable. Essaie de te connecter depuis l'ecran Connexion.");
     } catch (err) {
-      setError(getClerkErrorMessage(err));
+      const message = getClerkErrorMessage(err);
+      if (message.toLowerCase().includes("already verified") && normalizedEmail && password) {
+        try {
+          const signedIn = await completeWithPasswordSignIn(normalizedEmail, password);
+          if (signedIn) {
+            return;
+          }
+        } catch {
+          // Keep initial Clerk error below.
+        }
+      }
+
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -98,6 +165,31 @@ export default function SignupScreen() {
 
             {!needsVerification ? (
               <>
+                <AppInput
+                  label="Username"
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="ex: clement123"
+                />
+
+                <AppInput
+                  label="Prenom"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  autoCapitalize="words"
+                  placeholder="Clement"
+                />
+
+                <AppInput
+                  label="Nom"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  autoCapitalize="words"
+                  placeholder="Dupont"
+                />
+
                 <AppInput
                   label="Email"
                   value={email}
