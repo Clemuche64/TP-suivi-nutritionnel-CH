@@ -66,6 +66,20 @@ export default function AddMealScreen() {
     });
   }, []);
 
+  const clearSearch = useCallback(() => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setSearchResults([]);
+    setIsSearching(false);
+  }, []);
+
+  const resetComposer = useCallback(() => {
+    setSelectedType("Petit-dejeuner");
+    setSelectedFoods([]);
+    clearSearch();
+    setError(null);
+  }, [clearSearch]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm.trim());
@@ -157,15 +171,17 @@ export default function AddMealScreen() {
     setIsSavingMeal(true);
     setError(null);
 
+    const mealFoods = [...selectedFoods];
     const meal: Meal = {
       id: `meal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: selectedType,
       date: new Date().toISOString(),
-      foods: selectedFoods,
+      foods: mealFoods,
     };
 
     try {
       await addMeal(meal);
+      resetComposer();
       router.replace("/(main)/(home)");
     } catch {
       setError("Impossible d'enregistrer ce repas.");
@@ -231,7 +247,13 @@ export default function AddMealScreen() {
                     </Text>
                   </View>
                 </View>
-                <AppButton title="Ajouter" onPress={() => pushFood(food)} />
+                <AppButton
+                  title="Ajouter"
+                  onPress={() => {
+                    pushFood(food);
+                    clearSearch();
+                  }}
+                />
               </AppCard>
             ))}
           </View>

@@ -24,6 +24,7 @@ export default function HomeScreen() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [goal, setGoal] = useState(2000);
   const [goalInput, setGoalInput] = useState("2000");
+  const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [isSavingGoal, setIsSavingGoal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,12 +74,25 @@ export default function HomeScreen() {
     try {
       const saved = await saveCalorieGoal(parsed);
       setGoal(saved);
-      setGoalInput(String(saved));
+      setGoalInput("");
+      setIsEditingGoal(false);
     } catch {
       setError("Impossible d'enregistrer l'objectif calorique.");
     } finally {
       setIsSavingGoal(false);
     }
+  };
+
+  const openGoalEditor = () => {
+    setGoalInput(String(goal));
+    setError(null);
+    setIsEditingGoal(true);
+  };
+
+  const cancelGoalEditor = () => {
+    setGoalInput("");
+    setError(null);
+    setIsEditingGoal(false);
   };
 
   return (
@@ -103,21 +117,34 @@ export default function HomeScreen() {
                 <View style={[styles.progressFill, { width: `${progressPercent}%`, backgroundColor: progressColor }]} />
               </View>
 
-              <AppInput
-                label="Objectif kcal"
-                keyboardType="numeric"
-                value={goalInput}
-                onChangeText={setGoalInput}
-                placeholder="2000"
-              />
+              {isEditingGoal ? (
+                <>
+                  <AppInput
+                    label="Objectif kcal"
+                    keyboardType="numeric"
+                    value={goalInput}
+                    onChangeText={setGoalInput}
+                    placeholder="2000"
+                  />
 
-              <AppButton
-                title="Enregistrer l'objectif"
-                variant="secondary"
-                onPress={saveGoal}
-                loading={isSavingGoal}
-                fullWidth
-              />
+                  <View style={styles.goalActions}>
+                    <AppButton
+                      title="Enregistrer"
+                      onPress={saveGoal}
+                      loading={isSavingGoal}
+                      style={styles.goalActionButton}
+                    />
+                    <AppButton
+                      title="Annuler"
+                      variant="secondary"
+                      onPress={cancelGoalEditor}
+                      style={styles.goalActionButton}
+                    />
+                  </View>
+                </>
+              ) : (
+                <AppButton title="Modifier l'objectif" variant="secondary" onPress={openGoalEditor} fullWidth />
+              )}
             </AppCard>
 
             <AppButton title="Ajouter un repas" onPress={() => router.push("/(main)/add")} fullWidth />
@@ -190,6 +217,13 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     borderRadius: theme.radius.pill,
+  },
+  goalActions: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+  },
+  goalActionButton: {
+    flex: 1,
   },
   mealCard: {
     gap: theme.spacing.sm,

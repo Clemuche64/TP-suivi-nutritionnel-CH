@@ -106,14 +106,35 @@ export default function CameraScreen() {
         <Text style={styles.title}>Scanner un code-barres</Text>
 
         <AppCard style={styles.cameraCard}>
-          <CameraView
-            style={styles.camera}
-            facing="back"
-            onBarcodeScanned={hasScanned ? undefined : handleScanned}
-            barcodeScannerSettings={{
-              barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128", "code39"],
-            }}
-          />
+          <View style={styles.cameraShell}>
+            <CameraView
+              style={styles.camera}
+              facing="back"
+              onBarcodeScanned={hasScanned ? undefined : handleScanned}
+              barcodeScannerSettings={{
+                barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128", "code39"],
+              }}
+            />
+
+            <View pointerEvents="none" style={styles.overlay}>
+              <View style={styles.overlayTop} />
+
+              <View style={styles.overlayMiddle}>
+                <View style={styles.overlaySide} />
+                <View style={styles.scanFrame}>
+                  <View style={[styles.corner, styles.cornerTopLeft]} />
+                  <View style={[styles.corner, styles.cornerTopRight]} />
+                  <View style={[styles.corner, styles.cornerBottomLeft]} />
+                  <View style={[styles.corner, styles.cornerBottomRight]} />
+                </View>
+                <View style={styles.overlaySide} />
+              </View>
+
+              <View style={styles.overlayBottom}>
+                <Text style={styles.scanHint}>Aligne le code-barres dans le cadre</Text>
+              </View>
+            </View>
+          </View>
         </AppCard>
 
         {isLoading ? (
@@ -176,9 +197,84 @@ const styles = StyleSheet.create({
     padding: 0,
     overflow: "hidden",
   },
-  camera: {
+  cameraShell: {
     width: "100%",
     height: 300,
+    position: "relative",
+    backgroundColor: theme.colors.navy,
+  },
+  camera: {
+    width: "100%",
+    height: "100%",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  overlayTop: {
+    flex: 1,
+    backgroundColor: "rgba(7, 9, 13, 0.45)",
+  },
+  overlayMiddle: {
+    height: 150,
+    flexDirection: "row",
+  },
+  overlaySide: {
+    flex: 1,
+    backgroundColor: "rgba(7, 9, 13, 0.45)",
+  },
+  overlayBottom: {
+    flex: 1,
+    backgroundColor: "rgba(7, 9, 13, 0.45)",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingTop: theme.spacing.md,
+  },
+  scanFrame: {
+    width: 240,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(63, 155, 99, 0.55)",
+    backgroundColor: "transparent",
+    position: "relative",
+  },
+  corner: {
+    position: "absolute",
+    width: 26,
+    height: 26,
+    borderColor: theme.colors.green,
+  },
+  cornerTopLeft: {
+    top: 10,
+    left: 10,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 8,
+  },
+  cornerTopRight: {
+    top: 10,
+    right: 10,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 8,
+  },
+  cornerBottomLeft: {
+    bottom: 10,
+    left: 10,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 8,
+  },
+  cornerBottomRight: {
+    bottom: 10,
+    right: 10,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 8,
+  },
+  scanHint: {
+    color: theme.colors.text,
+    fontSize: 13,
+    fontWeight: "600",
   },
   loaderRow: {
     flexDirection: "row",
